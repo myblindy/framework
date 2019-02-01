@@ -34,6 +34,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'net462|AnyCPU' ">
     <DefineConstants>TRACE;NET462</DefineConstants>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'mono|AnyCPU'">
     <DefineConstants>TRACE;MONO</DefineConstants>
@@ -43,6 +44,9 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+    </Reference>
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
@@ -59,6 +63,7 @@
     <Compile Include="Internals\ICaptureGraphBuilder2.cs" />
     <Compile Include="Internals\ICreateDevEnum.cs" />
     <Compile Include="Internals\IEnumFilters.cs" />
+    <Compile Include="Internals\IEnumMediaTypes.cs" />
     <Compile Include="Internals\IEnumPins.cs" />
     <Compile Include="Internals\IFileSourceFilter.cs" />
     <Compile Include="Internals\IFilterGraph.cs" />
@@ -144,6 +149,7 @@
   <ItemGroup>
     <None Include="Accord.Video.DirectShow.cd" />
     <None Include="Icons\camera.png" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Accord.Imaging\Accord.Imaging.csproj">

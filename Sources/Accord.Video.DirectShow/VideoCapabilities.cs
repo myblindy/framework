@@ -77,6 +77,8 @@ namespace Accord.Video.DirectShow
         /// </summary>
         public readonly int BitCount;
 
+        public readonly AMMediaType MediaType;
+
         internal VideoCapabilities()
         {
         }
@@ -100,35 +102,20 @@ namespace Accord.Video.DirectShow
             if (size > Marshal.SizeOf(typeof(VideoStreamConfigCaps)))
                 throw new NotSupportedException("Unable to retrieve video device capabilities. This video device requires a larger VideoStreamConfigCaps structure.");
 
-            // group capabilities with similar parameters
-            var videocapsList = new Dictionary<ulong, VideoCapabilities>();
+            var caps = new List<VideoCapabilities>();
 
             for (int i = 0; i < count; i++)
             {
                 try
                 {
-                    var vc = new VideoCapabilities(videoStreamConfig, i);
-
-                    ulong key = (((uint)vc.AverageFrameRate) << 48) |
-                               (((uint)vc.FrameSize.Height) << 32) |
-                               (((uint)vc.FrameSize.Width) << 16);
-
-                    if (!videocapsList.ContainsKey(key))
-                    {
-                        videocapsList.Add(key, vc);
-                    }
-                    else
-                    {
-                        if (vc.BitCount > videocapsList[key].BitCount)
-                            videocapsList[key] = vc;
-                    }
+                    caps.Add(new VideoCapabilities(videoStreamConfig, i));
                 }
                 catch
                 {
                 }
             }
 
-            return videocapsList.Values.ToArray();
+            return caps.ToArray();
         }
 
         // Retrieve capabilities of a video device
@@ -153,6 +140,7 @@ namespace Accord.Video.DirectShow
                     BitCount = videoInfo.BmiHeader.BitCount;
                     AverageFrameRate = (int)(10000000 / videoInfo.AverageTimePerFrame);
                     MaximumFrameRate = (int)(10000000 / caps.MinFrameInterval);
+                    MediaType = mediaType;
                 }
                 else if (mediaType.FormatType == FormatType.VideoInfo2)
                 {
@@ -162,6 +150,7 @@ namespace Accord.Video.DirectShow
                     BitCount = videoInfo.BmiHeader.BitCount;
                     AverageFrameRate = (int)(10000000 / videoInfo.AverageTimePerFrame);
                     MaximumFrameRate = (int)(10000000 / caps.MinFrameInterval);
+                    MediaType = mediaType;
                 }
                 else
                 {
@@ -176,8 +165,8 @@ namespace Accord.Video.DirectShow
             }
             finally
             {
-                if (mediaType != null)
-                    mediaType.Dispose();
+                //if (mediaType != null)
+                //    mediaType.Dispose();
             }
         }
 
@@ -204,10 +193,10 @@ namespace Accord.Video.DirectShow
         /// 
         public bool Equals(VideoCapabilities vc2)
         {
-            if ((object)vc2 == null)
+            if (vc2 is null)
                 return false;
 
-            return (FrameSize == vc2.FrameSize) && (BitCount == vc2.BitCount);
+            return FrameSize == vc2.FrameSize && BitCount == vc2.BitCount && MediaType == vc2.MediaType;
         }
 
         /// <summary>
@@ -217,7 +206,7 @@ namespace Accord.Video.DirectShow
         /// <returns>Returns hash code ot the object </returns>
         public override int GetHashCode()
         {
-            return FrameSize.GetHashCode() ^ BitCount;
+            return FrameSize.GetHashCode() ^ BitCount ^ MediaType.GetHashCode();
         }
 
         /// <summary>
@@ -231,11 +220,11 @@ namespace Accord.Video.DirectShow
         public static bool operator ==(VideoCapabilities a, VideoCapabilities b)
         {
             // if both are null, or both are same instance, return true.
-            if (object.ReferenceEquals(a, b))
+            if (ReferenceEquals(a, b))
                 return true;
 
             // if one is null, but not both, return false.
-            if (((object)a == null) || ((object)b == null))
+            if ((a is null) || (b is null))
                 return false;
 
             return a.Equals(b);

@@ -15,8 +15,8 @@ namespace Accord.Video.DirectShow.Internals
     /// </summary>
     /// 
     [ComImport,
-    Guid( "56A86891-0AD4-11CE-B03A-0020AF0BA770" ),
-    InterfaceType( ComInterfaceType.InterfaceIsIUnknown )]
+    Guid("56A86891-0AD4-11CE-B03A-0020AF0BA770"),
+    InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface IPin
     {
         /// <summary>
@@ -29,7 +29,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int Connect( [In] IPin receivePin, [In, MarshalAs( UnmanagedType.LPStruct )] AMMediaType mediaType );
+        int Connect([In] IPin receivePin, [In, MarshalAs(UnmanagedType.LPStruct)] AMMediaType mediaType);
 
         /// <summary>
         /// Makes a connection to this pin and is called by a connecting pin.
@@ -41,7 +41,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int ReceiveConnection( [In] IPin receivePin, [In, MarshalAs( UnmanagedType.LPStruct )] AMMediaType mediaType );
+        int ReceiveConnection([In] IPin receivePin, [In, MarshalAs(UnmanagedType.LPStruct)] AMMediaType mediaType);
 
         /// <summary>
         /// Breaks the current pin connection.
@@ -50,7 +50,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int Disconnect( );
+        int Disconnect();
 
         /// <summary>
         /// Returns a pointer to the connecting pin.
@@ -61,7 +61,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int ConnectedTo( [Out] out IPin pin );
+        int ConnectedTo([Out] out IPin pin);
 
         /// <summary>
         /// Returns the media type of this pin's connection.
@@ -75,7 +75,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int ConnectionMediaType( [Out, MarshalAs( UnmanagedType.LPStruct )] AMMediaType mediaType );
+        int ConnectionMediaType([Out, MarshalAs(UnmanagedType.LPStruct)] AMMediaType mediaType);
 
         /// <summary>
         /// Retrieves information about this pin (for example, the name, owning filter, and direction).
@@ -86,7 +86,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int QueryPinInfo( [Out] out PinInfo pinInfo );
+        int QueryPinInfo([Out] out PinInfo pinInfo);
 
         /// <summary>
         /// Retrieves the direction for this pin.
@@ -97,7 +97,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int QueryDirection( out PinDirection pinDirection );
+        int QueryDirection(out PinDirection pinDirection);
 
         /// <summary>
         /// Retrieves an identifier for the pin.
@@ -108,7 +108,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int QueryId( [Out, MarshalAs( UnmanagedType.LPWStr )] out string id );
+        int QueryId([Out, MarshalAs(UnmanagedType.LPWStr)] out string id);
 
         /// <summary>
         /// Queries whether a given media type is acceptable by the pin.
@@ -119,7 +119,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int QueryAccept( [In, MarshalAs( UnmanagedType.LPStruct )] AMMediaType mediaType );
+        int QueryAccept([In, MarshalAs(UnmanagedType.LPStruct)] AMMediaType mediaType);
 
         /// <summary>
         /// Provides an enumerator for this pin's preferred media types.
@@ -130,7 +130,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int EnumMediaTypes( IntPtr enumerator );
+        int EnumMediaTypes([Out] out IntPtr enumerator);
 
         /// <summary>
         /// Provides an array of the pins to which this pin internally connects.
@@ -143,7 +143,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int QueryInternalConnections( IntPtr apPin, [In, Out] ref int nPin );
+        int QueryInternalConnections(IntPtr apPin, [In, Out] ref int nPin);
 
         /// <summary>
         /// Notifies the pin that no additional data is expected.
@@ -152,7 +152,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int EndOfStream( );
+        int EndOfStream();
 
         /// <summary>
         /// Begins a flush operation.
@@ -161,7 +161,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int BeginFlush( );
+        int BeginFlush();
 
         /// <summary>
         /// Ends a flush operation.
@@ -170,7 +170,7 @@ namespace Accord.Video.DirectShow.Internals
         /// <returns>Return's <b>HRESULT</b> error code.</returns>
         /// 
         [PreserveSig]
-        int EndFlush( );
+        int EndFlush();
 
         /// <summary>
         /// Specifies that samples following this call are grouped as a segment with a given start time, stop time, and rate.
@@ -186,6 +186,6 @@ namespace Accord.Video.DirectShow.Internals
         int NewSegment(
             long start,
             long stop,
-            double rate );
+            double rate);
     }
 }
