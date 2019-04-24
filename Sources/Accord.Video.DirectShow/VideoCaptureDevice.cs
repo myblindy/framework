@@ -73,14 +73,6 @@ namespace Accord.Video.DirectShow
         // pixel format
         private readonly PixelFormat pixelFormat = PixelFormat.Format24bppRgb;
 
-        // video and snapshot resolutions to set
-        private VideoCapabilities videoResolution = null;
-        private VideoCapabilities snapshotResolution = null;
-        private int averageTimePerFrame = 0;
-
-        // provide snapshots or not
-        private bool provideSnapshots = false;
-
         private Thread thread = null;
         private bool shouldStop;
 
@@ -88,7 +80,6 @@ namespace Accord.Video.DirectShow
         private AutoResetEvent hasFinished = new AutoResetEvent(false);
 
         private VideoCapabilities[] videoCapabilities;
-        private VideoCapabilities[] snapshotCapabilities;
 
         private bool needToSetVideoInput = false;
         private bool needToSimulateTrigger = false;
@@ -112,9 +103,8 @@ namespace Accord.Video.DirectShow
         private VideoInput crossbarVideoInput = VideoInput.Default;
 
         // cache for video/snapshot capabilities and video inputs
-        private static Dictionary<string, VideoCapabilities[]> cacheVideoCapabilities = new Dictionary<string, VideoCapabilities[]>();
-        private static Dictionary<string, VideoCapabilities[]> cacheSnapshotCapabilities = new Dictionary<string, VideoCapabilities[]>();
-        private static Dictionary<string, VideoInput[]> cacheCrossbarVideoInputs = new Dictionary<string, VideoInput[]>();
+        private static readonly Dictionary<string, VideoCapabilities[]> cacheVideoCapabilities = new Dictionary<string, VideoCapabilities[]>();
+        private static readonly Dictionary<string, VideoInput[]> cacheCrossbarVideoInputs = new Dictionary<string, VideoInput[]>();
 
         /// <summary>
         /// Current video input of capture card.
@@ -196,30 +186,6 @@ namespace Accord.Video.DirectShow
         }
 
         /// <summary>
-        /// Specifies if snapshots should be provided or not.
-        /// </summary>
-        /// 
-        /// <remarks><para>Some USB cameras/devices may have a shutter button, which may result into snapshot if it
-        /// is pressed. So the property specifies if the video source will try providing snapshots or not - it will
-        /// check if the camera supports providing still image snapshots. If camera supports snapshots and the property
-        /// is set to <see langword="true"/>, then snapshots will be provided through <see cref="SnapshotFrame"/>
-        /// event.</para>
-        /// 
-        /// <para>Check supported sizes of snapshots using <see cref="SnapshotCapabilities"/> property and set the
-        /// desired size using <see cref="SnapshotResolution"/> property.</para>
-        /// 
-        /// <para><note>The property must be set before running the video source to take effect.</note></para>
-        /// 
-        /// <para>Default value of the property is set to <see langword="false"/>.</para>
-        /// </remarks>
-        ///
-        public bool ProvideSnapshots
-        {
-            get { return provideSnapshots; }
-            set { provideSnapshots = value; }
-        }
-
-        /// <summary>
         /// New frame event.
         /// </summary>
         /// 
@@ -231,24 +197,6 @@ namespace Accord.Video.DirectShow
         /// </remarks>
         /// 
         public event NewFrameEventHandler NewFrame;
-
-        /// <summary>
-        /// Snapshot frame event.
-        /// </summary>
-        /// 
-        /// <remarks><para>Notifies clients about new available snapshot frame - the one which comes when
-        /// camera's snapshot/shutter button is pressed.</para>
-        /// 
-        /// <para>See documentation to <see cref="ProvideSnapshots"/> for additional information.</para>
-        /// 
-        /// <para><note>Since video source may have multiple clients, each client is responsible for
-        /// making a copy (cloning) of the passed snapshot frame, because the video source disposes its
-        /// own original copy after notifying of clients.</note></para>
-        /// </remarks>
-        /// 
-        /// <seealso cref="ProvideSnapshots"/>
-        /// 
-        public event NewFrameEventHandler SnapshotFrame;
 
         /// <summary>
         /// Video source error event.
@@ -282,7 +230,6 @@ namespace Accord.Video.DirectShow
                 deviceMoniker = value;
 
                 videoCapabilities = null;
-                snapshotCapabilities = null;
                 crossbarVideoInputs = null;
                 isCrossbarAvailable = null;
             }
@@ -377,7 +324,7 @@ namespace Accord.Video.DirectShow
         /// Gets a value indicating whether this instance has been disposed.
         /// </summary>
         /// <value><c>true</c> if this instance is disposed; otherwise, <c>false</c>.</value>
-        public bool IsDisposed { get { return disposedValue; } }
+        public bool IsDisposed { get; private set; } = false;
 
         /// <summary>
         ///   The desired average display time of the video frames, in 100-nanosecond units.
@@ -398,11 +345,7 @@ namespace Accord.Video.DirectShow
         ///   The default value for this property is 0 (AvgTimePerFrame will be initialized with 0).</para>
         /// </remarks>
         /// 
-        public int DesiredAverageTimePerFrame
-        {
-            get { return averageTimePerFrame; }
-            set { averageTimePerFrame = value; }
-        }
+        public int DesiredAverageTimePerFrame { get; set; } = 0;
 
         /// <summary>
         /// Video resolution to set.
@@ -417,11 +360,7 @@ namespace Accord.Video.DirectShow
         /// resolution is used.</para>
         /// </remarks>
         /// 
-        public VideoCapabilities VideoResolution
-        {
-            get { return videoResolution; }
-            set { videoResolution = value; }
-        }
+        public VideoCapabilities VideoResolution { get; set; } = null;
 
         /// <summary>
         /// Snapshot resolution to set.
@@ -436,11 +375,7 @@ namespace Accord.Video.DirectShow
         /// resolution is used.</para>
         /// </remarks>
         /// 
-        public VideoCapabilities SnapshotResolution
-        {
-            get { return snapshotResolution; }
-            set { snapshotResolution = value; }
-        }
+        public VideoCapabilities SnapshotResolution { get; set; } = null;
 
         /// <summary>
         /// Video capabilities of the device.
@@ -483,56 +418,6 @@ namespace Accord.Video.DirectShow
 
                 // don't return null even capabilities are not provided for some reason
                 return videoCapabilities ?? (new VideoCapabilities[0]);
-            }
-        }
-
-        /// <summary>
-        /// Snapshot capabilities of the device.
-        /// </summary>
-        /// 
-        /// <remarks><para>The property provides list of device's snapshot capabilities.</para>
-        /// 
-        /// <para>If the array has zero length, then it means that this device does not support making
-        /// snapshots.</para>
-        /// 
-        /// <para>See documentation to <see cref="ProvideSnapshots"/> for additional information.</para>
-        /// 
-        /// <para><note>It is recomended not to call this property immediately after <see cref="Start"/> method, since
-        /// device may not start yet and provide its information. It is better to call the property
-        /// before starting device or a bit after (but not immediately after).</note></para>
-        /// </remarks>
-        /// 
-        /// <seealso cref="ProvideSnapshots"/>
-        /// 
-        public VideoCapabilities[] SnapshotCapabilities
-        {
-            get
-            {
-                if (snapshotCapabilities == null)
-                {
-                    lock (cacheSnapshotCapabilities)
-                    {
-                        if (!String.IsNullOrEmpty(deviceMoniker) && cacheSnapshotCapabilities.ContainsKey(deviceMoniker))
-                            snapshotCapabilities = cacheSnapshotCapabilities[deviceMoniker];
-                    }
-
-                    if (snapshotCapabilities == null)
-                    {
-                        if (!IsRunning)
-                        {
-                            // create graph without playing to get the video/snapshot capabilities only.
-                            // not very clean but it works
-                            DoWork(runGraph: false);
-                        }
-                        else
-                        {
-                            for (int i = 0; i < 500 && snapshotCapabilities == null; i++)
-                                Thread.Sleep(10);
-                        }
-                    }
-                }
-                // don't return null even capabilities are not provided for some reason
-                return snapshotCapabilities ?? (new VideoCapabilities[0]);
             }
         }
 
@@ -985,7 +870,7 @@ namespace Accord.Video.DirectShow
         {
             do
             {
-                if (this.disposedValue)
+                if (this.IsDisposed)
                     return;
 
                 try
@@ -1004,13 +889,11 @@ namespace Accord.Video.DirectShow
         private void DoWork(bool runGraph)
         {
             var reasonToStop = ReasonToFinishPlaying.StoppedByUser;
-            bool isSnapshotSupported = false;
 
             // objects
             object captureGraphObject = null;
             object graphObject = null;
             object videoGrabberObject = null;
-            //object snapshotGrabberObject = null;
             object crossbarObject = null;
 
             // interfaces
@@ -1018,19 +901,15 @@ namespace Accord.Video.DirectShow
             IFilterGraph2 graph = null;
             IBaseFilter sourceBase = null;
             IBaseFilter videoGrabberBase = null;
-            //IBaseFilter snapshotGrabberBase = null;
             ISampleGrabber videoSampleGrabber = null;
-            //ISampleGrabber snapshotSampleGrabber = null;
             IMediaControl mediaControl = null;
             IAMVideoControl videoControl = null;
-            IMediaEventEx mediaEvent = null;
-            IPin pinStillImage = null;
             IAMCrossbar crossbar = null;
 
             try
             {
                 // get type of capture graph builder
-                Type type = Type.GetTypeFromCLSID(Clsid.CaptureGraphBuilder2);
+                var type = Type.GetTypeFromCLSID(Clsid.CaptureGraphBuilder2);
                 if (type == null)
                     throw new ApplicationException("Failed creating capture graph builder");
 
@@ -1077,18 +956,16 @@ namespace Accord.Video.DirectShow
                 videoGrabberObject = Activator.CreateInstance(type);
                 videoSampleGrabber = (ISampleGrabber)videoGrabberObject;
                 videoGrabberBase = (IBaseFilter)videoGrabberObject;
-                // create sample grabber used for snapshot capture
-                //snapshotGrabberObject = Activator.CreateInstance(type);
-                //snapshotSampleGrabber = (ISampleGrabber)snapshotGrabberObject;
-                //snapshotGrabberBase = (IBaseFilter)snapshotGrabberObject;
+
+                sourceBase.SetSyncSource(IntPtr.Zero);
+                videoGrabberBase.SetSyncSource(IntPtr.Zero);
 
                 // add source and grabber filters to graph
                 graph.AddFilter(sourceBase, "source");
                 graph.AddFilter(videoGrabberBase, "grabber_video");
-                //graph.AddFilter(snapshotGrabberBase, "grabber_snapshot");
 
                 // set media type
-                using (AMMediaType mediaType = new AMMediaType())
+                using (var mediaType = new AMMediaType())
                 {
                     mediaType.MajorType = MediaType.Video;
                     mediaType.SubType = MediaSubType.ConvertFrom(pixelFormat);
@@ -1103,48 +980,17 @@ namespace Accord.Video.DirectShow
                     isCrossbarAvailable = (crossbar != null);
                     crossbarVideoInputs = CollectCrossbarVideoInputs(crossbar);
 
-                    //if (videoControl != null)
-                    //{
-                    //    // find Still Image output pin of the video device
-                    //    captureGraph.FindPin(sourceObject, PinDirection.Output,
-                    //        PinCategory.StillImage, MediaType.Video, false, 0, out pinStillImage);
-                    //    // check if it support trigger mode
-                    //    if (pinStillImage != null)
-                    //    {
-                    //        VideoControlFlags caps;
-                    //        videoControl.GetCaps(pinStillImage, out caps);
-                    //        isSnapshotSupported = (((caps & VideoControlFlags.ExternalTriggerEnable) != 0) ||
-                    //                               ((caps & VideoControlFlags.Trigger) != 0));
-                    //    }
-                    //}
-
                     // grabber
-                    using (Grabber videoGrabber = new Grabber(this, snapshotMode: false, pixelFormat: this.pixelFormat))
-                    //using (Grabber snapshotGrabber = new Grabber(this, snapshotMode: true, pixelFormat: this.pixelFormat))
+                    using (var videoGrabber = new Grabber(this, snapshotMode: false, pixelFormat: pixelFormat))
                     {
                         // configure video sample grabber
-                        videoSampleGrabber.SetBufferSamples(/*false*/true);
+                        videoSampleGrabber.SetBufferSamples(true);
                         videoSampleGrabber.SetOneShot(false);
                         videoSampleGrabber.SetCallback(videoGrabber, 1);
 
-                        // configure snapshot sample grabber
-                        //snapshotSampleGrabber.SetBufferSamples(true);
-                        //snapshotSampleGrabber.SetOneShot(false);
-                        //snapshotSampleGrabber.SetCallback(snapshotGrabber, 1);
-
                         // configure pins
                         GetPinCapabilitiesAndConfigureSizeAndRate(captureGraph, sourceBase,
-                            PinCategory.Capture, videoResolution, ref videoCapabilities);
-
-                        if (isSnapshotSupported)
-                        {
-                            GetPinCapabilitiesAndConfigureSizeAndRate(captureGraph, sourceBase,
-                                PinCategory.StillImage, snapshotResolution, ref snapshotCapabilities);
-                        }
-                        else
-                        {
-                            snapshotCapabilities = new VideoCapabilities[0];
-                        }
+                            PinCategory.Capture, VideoResolution, ref videoCapabilities);
 
                         // put video/snapshot capabilities into cache
                         lock (cacheVideoCapabilities)
@@ -1153,37 +999,17 @@ namespace Accord.Video.DirectShow
                                 cacheVideoCapabilities.Add(deviceMoniker, videoCapabilities);
                         }
 
-                        //lock (cacheSnapshotCapabilities)
-                        //{
-                        //    if (snapshotCapabilities != null && !cacheSnapshotCapabilities.ContainsKey(deviceMoniker))
-                        //        cacheSnapshotCapabilities.Add(deviceMoniker, snapshotCapabilities);
-                        //}
-
                         if (runGraph)
                         {
                             // render capture pin
-                            //captureGraph.RenderStream(PinCategory.Capture, MediaType.Video, sourceBase, null, videoGrabberBase);
                             captureGraph.RenderStream(PinCategory.Capture, MediaType.Video, sourceBase, null, videoGrabberBase);
 
                             if (videoSampleGrabber.GetConnectedMediaType(mediaType) == 0)
                             {
-                                VideoInfoHeader vih = (VideoInfoHeader)Marshal.PtrToStructure(mediaType.FormatPtr, typeof(VideoInfoHeader));
+                                var vih = (VideoInfoHeader)Marshal.PtrToStructure(mediaType.FormatPtr, typeof(VideoInfoHeader));
                                 videoGrabber.Width = vih.BmiHeader.Width;
                                 videoGrabber.Height = vih.BmiHeader.Height;
                             }
-
-                            //if (isSnapshotSupported && provideSnapshots)
-                            //{
-                            //    // render snapshot pin
-                            //    captureGraph.RenderStream(PinCategory.StillImage, MediaType.Video, sourceBase, null, snapshotGrabberBase);
-
-                            //    if (snapshotSampleGrabber.GetConnectedMediaType(mediaType) == 0)
-                            //    {
-                            //        VideoInfoHeader vih = (VideoInfoHeader)Marshal.PtrToStructure(mediaType.FormatPtr, typeof(VideoInfoHeader));
-                            //        snapshotGrabber.Width = vih.BmiHeader.Width;
-                            //        snapshotGrabber.Height = vih.BmiHeader.Height;
-                            //    }
-                            //}
                         }
 
                         // get media control
@@ -1191,76 +1017,7 @@ namespace Accord.Video.DirectShow
 
                         // run
                         mediaControl.Run();
-
-                        // get media events' interface
-                        IntPtr p1, p2;
-                        DsEvCode code;
-
-                        mediaEvent = (IMediaEventEx)graphObject;
-
-                        if (isSnapshotSupported && provideSnapshots)
-                        {
-                            startTime = DateTime.Now;
-                            videoControl.SetMode(pinStillImage, VideoControlFlags.ExternalTriggerEnable);
-                        }
-
-                        do
-                        {
-                            if (mediaEvent != null)
-                            {
-                                if (mediaEvent.GetEvent(out code, out p1, out p2, 0) >= 0)
-                                {
-                                    mediaEvent.FreeEventParams(code, p1, p2);
-
-                                    if (code == DsEvCode.DeviceLost)
-                                    {
-                                        reasonToStop = ReasonToFinishPlaying.DeviceLost;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (needToSetVideoInput)
-                            {
-                                needToSetVideoInput = false;
-                                // set/check current input type of a video card (frame grabber)
-                                if (isCrossbarAvailable.Value)
-                                {
-                                    SetCurrentCrossbarInput(crossbar, crossbarVideoInput);
-                                    crossbarVideoInput = GetCurrentCrossbarInput(crossbar);
-                                }
-                            }
-
-                            if (needToSimulateTrigger)
-                            {
-                                needToSimulateTrigger = false;
-
-                                if (isSnapshotSupported && provideSnapshots)
-                                    videoControl.SetMode(pinStillImage, VideoControlFlags.Trigger);
-                            }
-
-                            if (needToDisplayPropertyPage)
-                            {
-                                needToDisplayPropertyPage = false;
-                                DisplayPropertyPage(parentWindowForPropertyPage, sourceObject);
-
-                                if (crossbar != null)
-                                    crossbarVideoInput = GetCurrentCrossbarInput(crossbar);
-                            }
-
-                            if (needToDisplayCrossBarPropertyPage)
-                            {
-                                needToDisplayCrossBarPropertyPage = false;
-
-                                if (crossbar != null)
-                                {
-                                    DisplayPropertyPage(parentWindowForPropertyPage, crossbar);
-                                    crossbarVideoInput = GetCurrentCrossbarInput(crossbar);
-                                }
-                            }
-                        }
-                        while (!shouldStop && runGraph);
-
+                        while (!shouldStop && runGraph) Thread.Sleep(100);
                         mediaControl.Stop();
                     }
                 }
@@ -1284,19 +1041,14 @@ namespace Accord.Video.DirectShow
                 sourceBase = null;
                 mediaControl = null;
                 videoControl = null;
-                mediaEvent = null;
-                pinStillImage = null;
                 crossbar = null;
 
                 videoGrabberBase = null;
-                //snapshotGrabberBase = null;
                 videoSampleGrabber = null;
-                //snapshotSampleGrabber = null;
 
                 release(ref graphObject);
                 release(ref sourceObject);
                 release(ref videoGrabberObject);
-                //release(ref snapshotGrabberObject);
                 release(ref captureGraphObject);
                 release(ref crossbarObject);
 
@@ -1327,11 +1079,9 @@ namespace Accord.Video.DirectShow
             }
 
             // iterate through device's capabilities to find mediaType for desired resolution
-            int capabilitiesCount = 0, capabilitySize = 0;
             AMMediaType newMediaType = null;
             var caps = new VideoStreamConfigCaps();
-
-            streamConfig.GetNumberOfCapabilities(out capabilitiesCount, out capabilitySize);
+            streamConfig.GetNumberOfCapabilities(out var capabilitiesCount, out _);
 
             for (int i = 0; i < capabilitiesCount; i++)
             {
@@ -1353,18 +1103,17 @@ namespace Accord.Video.DirectShow
             // set the new format
             if (newMediaType != null)
             {
-                if (averageTimePerFrame >= 0)
+                if (DesiredAverageTimePerFrame >= 0)
                 {
-                    //unsafe
-                    //{
-                    //    VideoInfoHeader* vih = (VideoInfoHeader*)newMediaType.FormatPtr;
-                    //    vih->AverageTimePerFrame = averageTimePerFrame;
-                    //}
+                    unsafe
+                    {
+                        VideoInfoHeader* vih = (VideoInfoHeader*)newMediaType.FormatPtr;
+                        vih->AverageTimePerFrame = DesiredAverageTimePerFrame;
+                    }
                 }
 
                 streamConfig.SetFormat(newMediaType);
                 newMediaType.Dispose();
-                newMediaType = null;
             }
         }
 
@@ -1372,8 +1121,7 @@ namespace Accord.Video.DirectShow
         private void GetPinCapabilitiesAndConfigureSizeAndRate(ICaptureGraphBuilder2 graphBuilder, IBaseFilter baseFilter,
             Guid pinCategory, VideoCapabilities resolutionToSet, ref VideoCapabilities[] capabilities)
         {
-            object streamConfigObject;
-            graphBuilder.FindInterface(pinCategory, MediaType.Video, baseFilter, typeof(IAMStreamConfig).GUID, out streamConfigObject);
+            graphBuilder.FindInterface(pinCategory, MediaType.Video, baseFilter, typeof(IAMStreamConfig).GUID, out var streamConfigObject);
 
             if (streamConfigObject != null)
             {
@@ -1602,31 +1350,12 @@ namespace Accord.Video.DirectShow
                 NewFrame(this, args);
         }
 
-        /// <summary>
-        /// Notifies clients about new snapshot frame.
-        /// </summary>
-        /// 
-        /// <param name="args">Event arguments containing the new frame's image.</param>
-        /// 
-        private void OnSnapshotFrame(NewFrameEventArgs args)
-        {
-            TimeSpan timeSinceStarted = args.CaptureFinished - args.CaptureStarted;
-
-            // TODO: need to find better way to ignore the first snapshot, 
-            // which is sent automatically (or better disable it)
-            if (timeSinceStarted.TotalSeconds >= 4)
-            {
-                if (SnapshotFrame != null && !this.shouldStop)
-                    SnapshotFrame(this, args);
-            }
-        }
-
         //
         // Video grabber
         //
         private class Grabber : ISampleGrabberCB, IDisposable
         {
-            private VideoCaptureDevice parent;
+            private readonly VideoCaptureDevice parent;
             private readonly bool snapshotMode;
             private readonly PixelFormat pixelFormat;
             private Bitmap image;
@@ -1689,14 +1418,7 @@ namespace Accord.Video.DirectShow
                     image.UnlockBits(imageData);
 
                     // notify parent
-                    if (snapshotMode)
-                    {
-                        parent.OnSnapshotFrame(args);
-                    }
-                    else
-                    {
-                        parent.OnNewFrame(args);
-                    }
+                    parent.OnNewFrame(args);
 
                     args.FrameIndex++;
                 }
@@ -1731,7 +1453,6 @@ namespace Accord.Video.DirectShow
         }
 
         #region IDisposable Support
-        private bool disposedValue = false; // To detect redundant calls
 
         /// <summary>
         /// Releases unmanaged and - optionally - managed resources.
@@ -1739,21 +1460,21 @@ namespace Accord.Video.DirectShow
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!IsDisposed)
             {
-                disposedValue = true;
+                IsDisposed = true;
 
                 if (disposing)
                 {
-                    this.Stop();
+                    Stop();
 
-                    this.hasFinished.Close();
-                    this.shouldWake.Close();
+                    hasFinished.Close();
+                    shouldWake.Close();
                 }
 
-                this.thread = null;
-                this.hasFinished = null;
-                this.shouldWake = null;
+                thread = null;
+                hasFinished = null;
+                shouldWake = null;
             }
         }
 

@@ -213,19 +213,19 @@ namespace Accord.Video.DirectShow
                 captureSize = caps.FrameSize;
             }
 
-            if (configureSnapshots)
-            {
-                // set snapshots size
-                if (snapshotCapabilitiesDictionary.Count != 0)
-                {
-                    VideoCapabilities caps = snapshotCapabilitiesDictionary[(string)snapshotResolutionsCombo.SelectedItem];
+            //if (configureSnapshots)
+            //{
+            //    // set snapshots size
+            //    if (snapshotCapabilitiesDictionary.Count != 0)
+            //    {
+            //        VideoCapabilities caps = snapshotCapabilitiesDictionary[(string)snapshotResolutionsCombo.SelectedItem];
 
-                    videoDevice.ProvideSnapshots = true;
-                    videoDevice.SnapshotResolution = caps;
+            //        videoDevice.ProvideSnapshots = true;
+            //        videoDevice.SnapshotResolution = caps;
 
-                    snapshotSize = caps.FrameSize;
-                }
-            }
+            //        snapshotSize = caps.FrameSize;
+            //    }
+            //}
 
             if (availableVideoInputs.Length != 0)
             {
@@ -291,36 +291,36 @@ namespace Accord.Video.DirectShow
                 videoResolutionsCombo.SelectedIndex = videoResolutionIndex;
 
 
-                if (configureSnapshots)
-                {
-                    // collect snapshot capabilities
-                    VideoCapabilities[] snapshotCapabilities = videoDevice.SnapshotCapabilities;
-                    int snapshotResolutionIndex = 0;
+                //if (configureSnapshots)
+                //{
+                //    // collect snapshot capabilities
+                //    VideoCapabilities[] snapshotCapabilities = videoDevice.SnapshotCapabilities;
+                //    int snapshotResolutionIndex = 0;
 
-                    foreach (VideoCapabilities capabilty in snapshotCapabilities)
-                    {
-                        string item = string.Format(
-                            "{0} x {1}", capabilty.FrameSize.Width, capabilty.FrameSize.Height);
+                //    foreach (VideoCapabilities capabilty in snapshotCapabilities)
+                //    {
+                //        string item = string.Format(
+                //            "{0} x {1}", capabilty.FrameSize.Width, capabilty.FrameSize.Height);
 
-                        if (!snapshotResolutionsCombo.Items.Contains(item))
-                        {
-                            if (snapshotSize == capabilty.FrameSize)
-                            {
-                                snapshotResolutionIndex = snapshotResolutionsCombo.Items.Count;
-                            }
+                //        if (!snapshotResolutionsCombo.Items.Contains(item))
+                //        {
+                //            if (snapshotSize == capabilty.FrameSize)
+                //            {
+                //                snapshotResolutionIndex = snapshotResolutionsCombo.Items.Count;
+                //            }
 
-                            snapshotResolutionsCombo.Items.Add(item);
-                            snapshotCapabilitiesDictionary.Add(item, capabilty);
-                        }
-                    }
+                //            snapshotResolutionsCombo.Items.Add(item);
+                //            snapshotCapabilitiesDictionary.Add(item, capabilty);
+                //        }
+                //    }
 
-                    if (snapshotCapabilities.Length == 0)
-                    {
-                        snapshotResolutionsCombo.Items.Add("Not supported");
-                    }
+                //    if (snapshotCapabilities.Length == 0)
+                //    {
+                //        snapshotResolutionsCombo.Items.Add("Not supported");
+                //    }
 
-                    snapshotResolutionsCombo.SelectedIndex = snapshotResolutionIndex;
-                }
+                //    snapshotResolutionsCombo.SelectedIndex = snapshotResolutionIndex;
+                //}
 
                 // get video inputs
                 availableVideoInputs = videoDevice.AvailableCrossbarVideoInputs;
