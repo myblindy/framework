@@ -117,7 +117,7 @@
     <PlatformPostfix>.x64</PlatformPostfix>
   </PropertyGroup>
   <PropertyGroup>
-    <TargetName>Accord.Video.FFMPEG$(PlatformPostfix)</TargetName>
+    <TargetName>Accord.Video.FFMPEG</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
