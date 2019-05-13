@@ -145,7 +145,7 @@
       <DocumentLibraryDependencies>false</DocumentLibraryDependencies>
     </Xdcmake>
     <PostBuildEvent>
-      <Command>sn -Ra "$(TargetPath)" "$(ProjectDir)Accord.snk"</Command>
+      <Command>"$(TargetFrameworkSDKToolsDirectory)x64\sn.exe" -Ra "$(TargetPath)" "$(ProjectDir)Accord.snk"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
